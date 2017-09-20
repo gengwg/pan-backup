@@ -1,0 +1,26 @@
+Help on module pan_backup:
+
+NAME
+    pan_backup
+
+FILE
+    pan-backup/pan_backup.py
+
+FUNCTIONS
+    pan_backup(config={})
+        Dowload PAN configs to local.
+    
+    parse_config(conf)
+        # helper function
+
+DATA
+    __author__ = 'Gengwg'
+    __version__ = '0.0.3'
+
+VERSION
+    0.0.3
+
+AUTHOR
+    Gengwg
+
+
