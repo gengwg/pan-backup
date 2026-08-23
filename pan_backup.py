@@ -5,21 +5,13 @@ __copyright__ = "Apache"
 __version__ = '0.0.3'
 
 """
-A Script to back up the Palo Alto Netowrk firewall configs.
+A Script to back up the Palo Alto Network firewall configs.
 Run as a cronjob to back up the configs weekly.
 """
 
 import requests
-import xml.etree.ElementTree as ET
-from xml.dom.minidom import parse, parseString
+from xml.dom.minidom import parse
 import sys
-import threading
-import os
-import argparse
-import json
-import logging
-from logging import log
-from datetime import date
 
 
 # helper function
@@ -29,11 +21,14 @@ def parse_config(conf):
     return myconfig
 
 
-def pan_backup(config={}):
-    """Dowload PAN configs to local."""
+def pan_backup(config=None):
+    """Download PAN configs to local."""
+    if config is None:
+        config = {}
 
     try:
         r = requests.get(config['myurl'], verify=config['ssl_certificate'])
+        r.raise_for_status()
     except requests.exceptions.RequestException as e:
         print e
         sys.exit(1)
@@ -42,11 +37,13 @@ def pan_backup(config={}):
         f.write(r.text)
 
     dom = parse(config['tmp_file'])
-    result = dom.getElementsByTagName('result')[0]
+    results = dom.getElementsByTagName('result')
+    if not results or results[0].firstChild is None:
+        print "PAN response did not contain a config result"
+        sys.exit(1)
 
-    # print result.firstChild.toxml()
     with open(config['backup_file'], 'wb') as f:
-        result.firstChild.writexml(f)
+        results[0].firstChild.writexml(f)
 
 
 if __name__ == "__main__":
