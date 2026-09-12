@@ -1,57 +1,74 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 __author__ = 'Gengwg'
 __copyright__ = "Apache"
-__version__ = '0.0.3'
+__version__ = '0.1.0'
 
 """
 A Script to back up the Palo Alto Network firewall configs.
 Run as a cronjob to back up the configs weekly.
 """
 
-import requests
-from xml.dom.minidom import parse
+import argparse
+import os
 import sys
+from xml.dom.minidom import parse
+
+import requests
 
 
-# helper function
-def parse_config(conf):
-    myconfig = {}
-    execfile(conf, myconfig)
-    return myconfig
+def load_config(conf):
+    config = {}
+    with open(conf, encoding='utf-8') as f:
+        exec(compile(f.read(), conf, 'exec'), config)
+    return config
 
 
-def pan_backup(config=None):
-    """Download PAN configs to local."""
-    if config is None:
-        config = {}
-
+def pan_backup(config):
+    """Download the firewall config to config['backup_file']."""
     try:
-        r = requests.get(config['myurl'], verify=config['ssl_certificate'])
+        r = requests.get(
+            config['myurl'],
+            verify=config.get('ssl_certificate', True),
+            timeout=config.get('timeout', 30),
+        )
         r.raise_for_status()
-    except requests.exceptions.RequestException as e:
-        print e
-        sys.exit(1)
+    except requests.RequestException as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
 
-    with open(config['tmp_file'], 'w') as f:
+    with open(config['tmp_file'], 'w', encoding='utf-8') as f:
         f.write(r.text)
 
     dom = parse(config['tmp_file'])
     results = dom.getElementsByTagName('result')
     if not results or results[0].firstChild is None:
-        print "PAN response did not contain a config result"
-        sys.exit(1)
+        print("error: PAN response did not contain a config result", file=sys.stderr)
+        return 1
 
-    with open(config['backup_file'], 'wb') as f:
+    backup_file = config['backup_file']
+    os.makedirs(os.path.dirname(backup_file) or '.', exist_ok=True)
+    with open(backup_file, 'w', encoding='utf-8') as f:
         results[0].firstChild.writexml(f)
+    return 0
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        '-c', '--config',
+        default='./pan.conf',
+        help='config file to use (default: %(default)s)',
+    )
+    args = parser.parse_args()
+
+    try:
+        config = load_config(args.config)
+    except OSError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
+    return pan_backup(config)
 
 
 if __name__ == "__main__":
-    pan_conf = './pan.conf'
-    try:
-        config = parse_config(pan_conf)
-    except IOError as e:
-        print e
-        sys.exit(1)
-    pan_backup(config)
-    sys.exit(0)
+    sys.exit(main())

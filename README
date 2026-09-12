@@ -1,26 +1,24 @@
-Help on module pan_backup:
+# pan-backup
 
-NAME
-    pan_backup
+Back up Palo Alto Networks firewall configs. Run as a cronjob.
 
-FILE
-    pan-backup/pan_backup.py
+## Setup
 
-FUNCTIONS
-    pan_backup(config={})
-        Dowload PAN configs to local.
-    
-    parse_config(conf)
-        # helper function
+```bash
+uv sync
+```
 
-DATA
-    __author__ = 'Gengwg'
-    __version__ = '0.0.3'
+Edit `pan.conf` with your firewall host and API key. The file is Python;
+`backup_file` is computed from today's date when the config is loaded.
 
-VERSION
-    0.0.3
+## Usage
 
-AUTHOR
-    Gengwg
+```bash
+uv run pan_backup.py -c /path/to/pan.conf
+```
 
+## Test
 
+```bash
+uv run pytest
+```
